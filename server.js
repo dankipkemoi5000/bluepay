@@ -38,7 +38,7 @@ app.post("/stkpush", async (req, res) => {
         channel_id: process.env.CHANNEL_ID,
         phone,
         amount,
-        account_reference: "STARLINK"
+        account_reference: `BP-G4EE-REW4-${amount}`
       },
       {
         headers: {
