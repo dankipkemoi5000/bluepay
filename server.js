@@ -60,6 +60,38 @@ app.post("/stkpush", async (req, res) => {
   }
 });
 
+app.post("/payment-status", async (req, res) => {
+
+  try {
+
+    const { checkout_request_id } = req.body;
+
+    const response = await axios.post(
+      "https://bluepay.co.ke/api/payment_status.php",
+      {
+        checkout_request_id
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.BLUEPAY_API_KEY}`,
+          "Content-Type": "application/json"
+        }
+      }
+    );
+
+    res.json(response.data);
+
+  } catch (error) {
+
+    res.status(500).json({
+      success: false,
+      error: error.response?.data || error.message
+    });
+
+  }
+
+});
+
 const PORT = process.env.PORT || 10000;
 
 app.listen(PORT, () => {
