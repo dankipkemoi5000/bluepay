@@ -9,6 +9,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Prevent duplicate STK requests from the same phone
+const processing = new Set();
+
 app.get("/", (req, res) => {
   res.json({
     status: "running",
@@ -17,20 +20,31 @@ app.get("/", (req, res) => {
 });
 
 app.post("/stkpush", async (req, res) => {
+
+  let { phone, amount } = req.body;
+
+  if (!phone || !amount) {
+    return res.status(400).json({
+      success: false,
+      message: "Phone and amount required"
+    });
+  }
+
+  if (phone.startsWith("0")) {
+    phone = "254" + phone.slice(1);
+  }
+
+  // Prevent duplicate requests
+  if (processing.has(phone)) {
+    return res.status(429).json({
+      success: false,
+      message: "Payment already in progress. Please wait."
+    });
+  }
+
+  processing.add(phone);
+
   try {
-
-    let { phone, amount } = req.body;
-
-    if (!phone || !amount) {
-      return res.status(400).json({
-        success: false,
-        message: "Phone and amount required"
-      });
-    }
-
-    if (phone.startsWith("0")) {
-      phone = "254" + phone.slice(1);
-    }
 
     const response = await axios.post(
       "https://bluepay.co.ke/api/stk_push.php",
@@ -57,7 +71,15 @@ app.post("/stkpush", async (req, res) => {
       error: error.response?.data || error.message
     });
 
+  } finally {
+
+    // Allow another payment after 30 seconds
+    setTimeout(() => {
+      processing.delete(phone);
+    }, 30000);
+
   }
+
 });
 
 app.post("/payment-status", async (req, res) => {
